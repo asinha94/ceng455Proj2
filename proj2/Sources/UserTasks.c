@@ -26,7 +26,6 @@ extern "C" {
 */
 void user_task(os_task_param_t task_init_data)
 {
-	return;
 	printf("\r\n[%d] Starting User Task", _task_get_id());
 
 	_queue_id userq_client_id = _msgq_open(USER_CLIENT_QUEUE_ID, 0);
@@ -41,6 +40,12 @@ void user_task(os_task_param_t task_init_data)
 
 	uint16_t user_msg_count = 0;
 	USER_REQUEST_PTR msg_ptr;
+
+	OpenR(0);
+	OpenW();
+	OSA_TimeDelay(3000);
+	Close();
+	return;
 
 
 #ifdef PEX_USE_RTOS

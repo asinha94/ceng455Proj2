@@ -149,6 +149,7 @@ bool remove_read_privilege(_task_id tid) {
 	}
 
 	read_privileges = rw_new_head;
+	_mutex_unlock(&read_priv_mutex);
 	return TRUE;
 }
 
@@ -160,10 +161,11 @@ bool remove_write_privilege(_task_id tid) {
 		return FALSE;
 	}
 
+
 	USER_PRIVILEGE_PTR rw_head = write_privileges;
 
 	// Check if it alread exists
-	if (check_rw_privilege(rw_head, tid)) return FALSE;
+	if (!check_rw_privilege(rw_head, tid)) return FALSE;
 
 	USER_PRIVILEGE_PTR rw_prev = NULL;
 	while (rw_head->task_id != tid) {
@@ -183,7 +185,43 @@ bool remove_write_privilege(_task_id tid) {
 	}
 
 	write_privileges = rw_new_head;
+	_mutex_unlock(&write_priv_mutex);
 	return TRUE;
+}
+
+void print_rw_privileges(){
+	int mut_error = _mutex_lock(&read_priv_mutex);
+	if (mut_error != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Lock Read Mutex", _task_get_id());
+		printf("\r\nError: %d", mut_error);
+		return;
+	}
+
+	USER_PRIVILEGE_PTR rw_head = read_privileges;
+
+	printf("\r\nCurrent Tasks have Read Privilege:");
+	while (rw_head != NULL) {
+		printf("\r\n\t%d", rw_head->task_id);
+		rw_head = rw_head->next;
+	}
+	_mutex_unlock(&read_priv_mutex);
+
+	mut_error = _mutex_lock(&write_priv_mutex);
+	if (mut_error != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Lock Write Mutex", _task_get_id());
+		printf("\r\nError: %d", mut_error);
+		return;
+	}
+
+	rw_head = write_privileges;
+
+	printf("\r\nCurrent Tasks have Write Privilege:");
+	while (rw_head != NULL) {
+		printf("\r\n\t%d", rw_head->task_id);
+		rw_head = rw_head->next;
+	}
+
+	_mutex_unlock(&write_priv_mutex);
 }
 
 
@@ -217,14 +255,35 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
+	MUTEX_ATTR_STRUCT mutextattr;
+	if (_mutatr_init(&mutextattr) != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Init Mutex attr in Serial task", _task_get_id());
+	}
+
+	if (_mutex_init(&read_priv_mutex, &mutextattr) != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Init read mutex", _task_get_id());
+	}
+
+	if (_mutex_init(&write_priv_mutex, &mutextattr) != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Init read mutex", _task_get_id());
+	}
+
 	// Delay to allow for the tasks to run
-	OSA_TimeDelay(1000);
+	OSA_TimeDelay(2000);
+	print_rw_privileges();
+	printf("\r\nWaiting 6 seconds...");
+	OSA_TimeDelay(6000);
+	print_rw_privileges();
+	return;
 
   
 #ifdef PEX_USE_RTOS
   while (1) {
 #endif
 
+
+
+	  /*
 	  for (int i = 0; i < 10; i++) {
 		  printf("\r\n[%d] I am in Handler Task", _task_get_id());
 		  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
@@ -245,8 +304,9 @@ void handler_task(os_task_param_t task_init_data)
 
 		  OSA_TimeDelay(1000);
 	  }
+	  */
+	  OSA_TimeDelay(1000);
 
-	  return;
 
 #ifdef PEX_USE_RTOS   
   }
