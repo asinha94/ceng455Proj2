@@ -62,23 +62,28 @@ static bool check_rw_privilege(USER_PRIVILEGE_PTR current_priv, _task_id tid) {
 
 bool check_write_privilege(_task_id tid) {
 	int mut_error = _mutex_lock(&write_priv_mutex);
-	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't lock write mutex when adding adding write privilege", _task_get_id());
-		printf("\r\nError: %d", mut_error);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't lock write mutex when checking write privilege", _task_get_id());
+		printf("\r\nError: 0x%x", mut_error);
 		_task_set_error(MQX_OK);
+		printf("\r\nLocking write mutex failed");
 		return FALSE;
 	}
 
-	bool priv = check_rw_privilege(&write_priv_mutex, tid);
+	bool priv = check_rw_privilege(write_privileges, tid);
 	_mutex_unlock(&write_priv_mutex);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't unlock read Mutex when checking write privs. Error: 0x%x", _task_get_id(), _task_get_error());
+		_task_set_error(MQX_OK);
+	}
 	return priv;
 }
 
 _queue_id get_read_queueid(_task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
-	if (mut_error != MQX_EOK) {
+	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] Couldn't Lock read Mutex when checking queue id", _task_get_id());
-		printf("\r\nError: %d", mut_error);
+		printf("\r\nError: 0x%x", mut_error);
 		_task_set_error(MQX_OK);
 		return FALSE;
 	}
@@ -88,19 +93,28 @@ _queue_id get_read_queueid(_task_id tid) {
 	while (rw_head != NULL) {
 		if (rw_head->task_id = tid) {
 			_mutex_unlock(&read_priv_mutex);
+			if (_task_get_error() != MQX_EOK) {
+				printf("\r\n[%d] Couldn't unlock read Mutex when getting queueid. Error: 0x%x", _task_get_id(), _task_get_error());
+				_task_set_error(MQX_OK);
+			}
 			return rw_head->queue_id;
 		}
 		rw_head = rw_head->next;
 	}
 
+	_mutex_unlock(&read_priv_mutex);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't unlock read Mutex when getting queueid. Error: 0x%x", _task_get_id(), _task_get_error());
+		_task_set_error(MQX_OK);
+	}
 	return 0;
 }
 
 bool add_read_privilege(_queue_id qid , _task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
-	if (mut_error != MQX_EOK) {
+	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] Couldn't Lock read mutex when adding read privilege", _task_get_id());
-		printf("\r\nError: %d", mut_error);
+		printf("\r\nError: 0x%x", mut_error);
 		_task_set_error(MQX_OK);
 		return FALSE;
 	}
@@ -122,14 +136,18 @@ bool add_read_privilege(_queue_id qid , _task_id tid) {
 	new_privilege->next = rw_head;
 	read_privileges = new_privilege;
 	_mutex_unlock(&read_priv_mutex);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't unlock read Mutex when checking read privs. Error: 0x%x", _task_get_id(), _task_get_error());
+		_task_set_error(MQX_OK);
+	}
 	return TRUE;
 }
 
 _queue_id add_write_privilege(_task_id tid) {
 	int mut_error = _mutex_lock(&write_priv_mutex);
-	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't lock write mutex when adding adding write privilege", _task_get_id());
-		printf("\r\nError: %d", mut_error);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't lock write mutex when adding adding write privilege. Error: 0x%x", _task_get_id(), _task_get_error());
+		printf("\r\nError: 0x%x", mut_error);
 		_task_set_error(MQX_OK);
 		return FALSE;
 	}
@@ -153,6 +171,10 @@ _queue_id add_write_privilege(_task_id tid) {
 
 	write_privileges = new_privilege;
 	_mutex_unlock(&write_priv_mutex);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't unlock write Mutex when getting write privs. Error: 0x%x", _task_get_id(), _task_get_error());
+		_task_set_error(MQX_OK);
+	}
 	return putline_queue_id;
 }
 
@@ -195,6 +217,10 @@ bool remove_read_privilege(_task_id tid) {
 
 	read_privileges = rw_new_head;
 	_mutex_unlock(&read_priv_mutex);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't unlock read Mutex when removing read privs. Error: 0x%x", _task_get_id(), _task_get_error());
+		_task_set_error(MQX_OK);
+	}
 	return TRUE;
 }
 
@@ -238,6 +264,10 @@ bool remove_write_privilege(_task_id tid) {
 
 	write_privileges = rw_new_head;
 	_mutex_unlock(&write_priv_mutex);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] Couldn't unlock write Mutex when removing write privs. Error: 0x%x", _task_get_id(), _task_get_error());
+		_task_set_error(MQX_OK);
+	}
 	return TRUE;
 }
 
@@ -338,38 +368,72 @@ void handler_task(os_task_param_t task_init_data)
   while (1) {
 #endif
 
-      int mut_error = _mutex_lock(&read_priv_mutex);
-      if (mut_error != MQX_EOK) {
-		  printf("\r\n[%d] Couldn't Lock Read Mutex", _task_get_id());
-		  printf("\r\nError: %d", mut_error);
+	  int user_msg_count = _msgq_get_count(putline_queue_id);
+	  if (user_msg_count == 0 && _task_get_error() != MQX_OK) {
+		  printf("\r\nFailed to get user message count of putline queue.\n");
+		  printf("\r\nError code: 0x%x\n", _task_get_error());
+		  _task_set_error(MQX_OK);
 		  continue;
-      }
+	  }
 
-      USER_PRIVILEGE_PTR rw_head = read_privileges;
-      while (rw_head != NULL) {
-    	  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
-    	  if (msg_ptr == NULL) {
-    		  printf("\r\n[%d] Failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
-    		  _task_set_error(MQX_OK);
-    		  continue;
-    	  }
+	  if (user_msg_count > 0) {
+		  USER_REQUEST_PTR putline_msg_ptr = _msgq_receive(putline_queue_id, 0);
 
-    	  msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
-    	  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
-    	  msg_ptr->HEADER.TARGET_QID = rw_head->queue_id;
-    	  strcpy(msg_ptr->DATA, "This is a string\0");
-    	  _msgq_send(msg_ptr);
+		  if (_task_get_error() != MQX_EOK) {
+			  printf("\r\n[%d] failed to recieve message from putline queue",  _task_get_id());
+			  printf("\r\nError 0x%x", _task_get_error());
+			  _task_set_error(MQX_OK);
+			  continue;
+		  }
 
-    	  if (_task_get_error() != MQX_EOK) {
-    		  printf("\r\n[%d] failed to Send Message to User: Error 0x%x",  _task_get_id(), _task_get_error());
-    		  _task_set_error(MQX_OK);
-    		  continue;
-    		}
+		  char putline_data[MESSAGE_SIZE];
 
-    	  rw_head = rw_head->next;
-      }
+		  strcpy(putline_data, putline_msg_ptr->DATA);
+		  _msg_free(putline_msg_ptr);
 
-	  _mutex_unlock(&read_priv_mutex);
+		  printf("\r\n[%d] Handler recieved data from Putline: %s", _task_get_id(), putline_data);
+
+		  if (_task_get_error() != MQX_EOK) {
+			  printf("\r\n[%d] failed to free message",  _task_get_id());
+			  printf("\r\nError 0x%x", _task_get_error());
+			  _task_set_error(MQX_OK);
+			  continue;
+		  }
+
+		  int mut_error = _mutex_lock(&read_priv_mutex);
+		  if (mut_error != MQX_EOK) {
+			  printf("\r\n[%d] Couldn't Lock Read Mutex", _task_get_id());
+			  printf("\r\nError: %d", mut_error);
+			  continue;
+		  }
+
+		  USER_PRIVILEGE_PTR rw_head = read_privileges;
+		  while (rw_head != NULL) {
+			  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
+			  if (msg_ptr == NULL) {
+				  printf("\r\n[%d] Failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
+				  _task_set_error(MQX_OK);
+				  continue;
+			  }
+
+			  msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
+			  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
+			  msg_ptr->HEADER.TARGET_QID = rw_head->queue_id;
+			  strcpy(msg_ptr->DATA, putline_data);
+			  _msgq_send(msg_ptr);
+
+			  if (_task_get_error() != MQX_EOK) {
+				  printf("\r\n[%d] failed to Send Message to User: Error 0x%x",  _task_get_id(), _task_get_error());
+				  _task_set_error(MQX_OK);
+				  continue;
+				}
+
+			  rw_head = rw_head->next;
+		  }
+
+		  _mutex_unlock(&read_priv_mutex);
+	  }
+
 	  OSA_TimeDelay(100);
 
 
@@ -377,12 +441,6 @@ void handler_task(os_task_param_t task_init_data)
   }
 #endif    
 }
-
-/* END os_tasks */
-
-#ifdef __cplusplus
-}  /* extern "C" */
-#endif 
 
 /*!
 ** @}

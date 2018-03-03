@@ -115,13 +115,7 @@ extern bool remove_write_privilege(_task_id);
 */
 void handler_task(os_task_param_t task_init_data);
 
-/* END os_tasks */
-
-#ifdef __cplusplus
-}  /* extern "C" */
-#endif 
-
-#endif 
+#endif
 /* ifndef __os_tasks_H*/
 /*!
 ** @}

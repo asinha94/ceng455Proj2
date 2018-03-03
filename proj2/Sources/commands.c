@@ -67,6 +67,8 @@ _queue_id OpenW() {
 	return add_write_privilege(_task_get_id());
 }
 
+int queue_exists = 0;
+
 int _putline(_queue_id qid, char * string) {
 	int queueid = check_write_privilege(_task_get_id());
 
@@ -74,7 +76,11 @@ int _putline(_queue_id qid, char * string) {
 		return FALSE;
 	}
 
-	_queue_id putline_msgq_id = _msgq_open(USER_PUT_QUEUE_ID, 0);
+	_queue_id putline_msgq_id;
+	if (!queue_exists) {
+		putline_msgq_id = _msgq_open(USER_PUT_QUEUE_ID, 0);
+		queue_exists = 1;
+	}
 
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to create User Message Queue",  _task_get_id());
@@ -102,12 +108,14 @@ int _putline(_queue_id qid, char * string) {
 		return FALSE;
 	}
 
+	/*
 	_msgq_close(putline_msgq_id);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Close message queue: Error 0x%x",  _task_get_id(), _task_get_error());
 		_task_set_error(MQX_OK);
 		return FALSE;
 	}
+	*/
 	return TRUE;
 }
 
