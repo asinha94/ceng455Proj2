@@ -57,6 +57,7 @@
 /* Application specific header file */
 #include "rtos_main_task.h"
 #include "os_tasks.h"
+#include "UserTasks.h"
 #include "MainTask.h"
 #include "HandlerTask.h"
 #include "UserTask.h"

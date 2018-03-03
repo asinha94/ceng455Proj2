@@ -291,63 +291,49 @@ void handler_task(os_task_param_t task_init_data)
 
 	// Delay to allow for the User tasks to init
 	OSA_TimeDelay(2000);
-
-	char string_to_sen[] = "This is a string\0";
   
 #ifdef PEX_USE_RTOS
   while (1) {
 #endif
 
-	  /*
-	  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
-	  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
-	  msg_ptr->HEADER.TARGET_QID = _msgq_get_id(0, USER_CLIENT_QUEUE_ID);
-	  msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
-	  char tosend[MESSAGE_SIZE];
-	  sprintf(tosend, "%d+%d=%d\0", i, i, i+i);
-	  strcpy(msg_ptr->DATA, tosend);
-	  _msgq_send(msg_ptr);
+      int mut_error = _mutex_lock(&read_priv_mutex);
+      if (mut_error != MQX_EOK) {
+		  printf("\r\n[%d] Couldn't Lock Read Mutex", _task_get_id());
+		  printf("\r\nError: %d", mut_error);
+		  continue;
+      }
 
-	  if (_task_get_error() != MQX_EOK) {
-		  printf("\r\n[%d] failed to Send Message to User",  _task_get_id());
-		  printf("\r\nError 0x%x", _task_get_error());
-		  _task_set_error(MQX_OK);
-		  _task_block();
-		}
-*/
+      USER_PRIVILEGE_PTR rw_head = read_privileges;
+      while (rw_head != NULL) {
+    	  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
+    	  if (msg_ptr == NULL) {
+    		  printf("\r\n[%d] failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
+    		  _task_set_error(MQX_OK);
+    		  continue;
+    	  }
+
+    	  msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
+    	  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
+    	  msg_ptr->HEADER.TARGET_QID = rw_head->queue_id;
+    	  strcpy(msg_ptr->DATA, "This is a string\0");
+    	  int result = _msgq_send(msg_ptr);
+
+    	  if (_task_get_error() != MQX_EOK) {
+    		  printf("\r\n[%d] failed to Send Message to User: Error 0x%x",  _task_get_id(), _task_get_error());
+    		  printf("\r\nResult: 0x%x", result);
+    		  _task_set_error(MQX_OK);
+    		  continue;
+    		}
+
+    	  rw_head = rw_head->next;
+      }
+
+      return;
+
+	  _mutex_unlock(&read_priv_mutex);
 	  OSA_TimeDelay(100);
 
 
-#ifdef PEX_USE_RTOS   
-  }
-#endif    
-}
-
-
-/*
-** ===================================================================
-**     Callback    : user_task
-**     Description : Task function entry.
-**     Parameters  :
-**       task_init_data - OS task parameter
-**     Returns : Nothing
-** ===================================================================
-*/
-void user_task(os_task_param_t task_init_data)
-{
-  /* Write your local variable definition here */
-  
-#ifdef PEX_USE_RTOS
-  while (1) {
-#endif
-    /* Write your code here ... */
-    
-    
-    OSA_TimeDelay(10);                 /* Example code (for task release) */
-   
-    
-    
-    
 #ifdef PEX_USE_RTOS   
   }
 #endif    

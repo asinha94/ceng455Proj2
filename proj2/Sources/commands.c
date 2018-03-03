@@ -10,14 +10,57 @@
 #include "mutex.h"
 
 #include "commands.h"
+#include "os_tasks.h"
 
 _queue_id OpenR(uint16_t queue_id) {
 	return add_read_privilege(queue_id, _task_get_id());
 }
 
-int _getline(char *c) {
+int _getline(char * received) {
 	int queueid = get_read_queueid(_task_get_id());
-	return FALSE;
+
+	if (queueid == 0) {
+		return FALSE;
+	}
+
+	int user_msg_count = 0;
+
+	while (1) {
+		  user_msg_count = _msgq_get_count(queueid);
+		  if (user_msg_count == 0 && _task_get_error() != MQX_OK) {
+			  printf("\r\nFailed to get user message count.\n");
+			  printf("\r\nError code: 0x%x\n", _task_get_error());
+			  _task_set_error(MQX_OK);
+			  continue;
+		  }
+
+		  if (user_msg_count > 0) {
+			  USER_REQUEST_PTR msg_ptr = _msgq_receive(queueid, 0);
+
+		      if (_task_get_error() != MQX_EOK) {
+				  printf("\r\n[%d] failed to recieve message from handler",  _task_get_id());
+				  printf("\r\nError 0x%x", _task_get_error());
+				  _task_set_error(MQX_OK);
+				  return FALSE;
+			  }
+
+			  strcpy(received, msg_ptr->DATA);
+			  _msg_free(msg_ptr);
+
+			  if (_task_get_error() != MQX_EOK) {
+				  printf("\r\n[%d] failed to free message",  _task_get_id());
+				  printf("\r\nError 0x%x", _task_get_error());
+				  _task_set_error(MQX_OK);
+				  return FALSE;
+			  }
+
+			  return TRUE;
+		  }
+
+		  OSA_TimeDelay(100);
+	}
+
+	return FALSE; // will never get here but whatever
 }
 
 _queue_id OpenW() {

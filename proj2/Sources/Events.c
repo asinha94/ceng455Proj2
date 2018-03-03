@@ -57,8 +57,9 @@ int not_opened = 1;
 void myUART_RxCallback(uint32_t instance, void * uartState)
 {
     //UART_DRV_SendData(myUART_IDX, myRxBuff, sizeof(myRxBuff));
-    _queue_id client_qid;
     /*
+    _queue_id client_qid;
+
     if (not_opened) {
     	client_qid = _msgq_open((_queue_number)RX_QUEUE_HANDLER_ID, 0);
 		if (client_qid == 0) {

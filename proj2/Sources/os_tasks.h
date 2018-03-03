@@ -54,7 +54,7 @@ extern "C" {
 
 /* Size */
 #define RX_QUEUE_SIZE 1
-#define MESSAGE_SIZE 32
+#define MESSAGE_SIZE 64
 
 /* QUEUE IDs */
 #define USER_SERVER_QUEUE_ID 1
@@ -93,7 +93,6 @@ typedef enum rw_priv {
 
 
 /* Linked List Functions*/
-static bool check_rw_privilege(USER_PRIVILEGE_PTR, _task_id);
 extern _queue_id get_queueid(_task_id tid);
 extern bool add_read_privilege(_queue_id, _task_id);
 extern _queue_id add_write_privilege(_task_id);
@@ -111,18 +110,6 @@ extern bool remove_write_privilege(_task_id);
 ** ===================================================================
 */
 void handler_task(os_task_param_t task_init_data);
-
-
-/*
-** ===================================================================
-**     Callback    : user_task
-**     Description : Task function entry.
-**     Parameters  :
-**       task_init_data - OS task parameter
-**     Returns : Nothing
-** ===================================================================
-*/
-void user_task(os_task_param_t task_init_data);
 
 /* END os_tasks */
 
