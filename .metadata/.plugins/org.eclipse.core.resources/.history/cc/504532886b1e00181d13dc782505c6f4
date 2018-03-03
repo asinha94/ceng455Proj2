@@ -1,0 +1,148 @@
+/* ###################################################################
+**     Filename    : os_tasks.c
+**     Project     : proj2
+**     Processor   : MK64FN1M0VLL12
+**     Component   : Events
+**     Version     : Driver 01.00
+**     Compiler    : GNU C Compiler
+**     Date/Time   : 2018-03-01, 15:46, # CodeGen: 1
+**     Abstract    :
+**         This is user's event module.
+**         Put your event handler code here.
+**     Settings    :
+**     Contents    :
+**         user_task    - void user_task(os_task_param_t task_init_data);
+**         handler_task - void handler_task(os_task_param_t task_init_data);
+**
+** ###################################################################*/
+/*!
+** @file os_tasks.c
+** @version 01.00
+** @brief
+**         This is user's event module.
+**         Put your event handler code here.
+*/         
+/*!
+**  @addtogroup os_tasks_module os_tasks module documentation
+**  @{
+*/         
+/* MODULE os_tasks */
+
+#include "Cpu.h"
+#include "Events.h"
+#include "rtos_main_task.h"
+#include "os_tasks.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
+
+/* User includes (#include below this line is not maintained by Processor Expert) */
+
+
+/*
+** ===================================================================
+**     Callback    : handler_task
+**     Description : Task function entry.
+**     Parameters  :
+**       task_init_data - OS task parameter
+**     Returns : Nothing
+** ===================================================================
+*/
+void handler_task(os_task_param_t task_init_data)
+{
+	printf("\r\n[%d] Starting Handler Task", _task_get_id());
+
+	_queue_id userq_server_id = _msgq_open(USER_SERVER_QUEUE_ID,0);
+
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] failed to Handler Message Queue",  _task_get_id());
+		printf("User%d: Error %x", _task_get_error());
+		_task_set_error(MQX_OK);
+		_task_block();
+	}
+
+	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), RX_QUEUE_SIZE, 0, 0);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] failed to Handler Message Queue",  _task_get_id());
+		printf("User%d: Error %x", _task_get_error());
+		_task_set_error(MQX_OK);
+		_task_block();
+	}
+
+
+  
+#ifdef PEX_USE_RTOS
+  while (1) {
+#endif
+
+	  for (int i = 0; i < 10; i++) {
+		  printf("\r\n[%d] I am in Handler Task", _task_get_id());
+		  USER_REQUEST_PTR
+	  }
+
+
+
+	  OSA_TimeDelay(1000);
+    
+#ifdef PEX_USE_RTOS   
+  }
+#endif    
+}
+
+/*
+** ===================================================================
+**     Callback    : user_task
+**     Description : Task function entry.
+**     Parameters  :
+**       task_init_data - OS task parameter
+**     Returns : Nothing
+** ===================================================================
+*/
+void user_task(os_task_param_t task_init_data)
+{
+	printf("\r\n[%d] Starting User Task", _task_get_id());
+
+	_queue_id userq_client_id = _msgq_open(USER_CLIENT_QUEUE_ID,0);
+
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] failed to Handler Message Queue",  _task_get_id());
+		printf("User%d: Error %x", _task_get_error());
+		_task_set_error(MQX_OK);
+		_task_block();
+	}
+
+
+  
+#ifdef PEX_USE_RTOS
+  while (1) {
+#endif
+
+	  printf("\r\n[%d] I am in User Task", _task_get_id());
+	  OSA_TimeDelay(1000);
+
+    
+#ifdef PEX_USE_RTOS   
+  }
+#endif    
+}
+
+/* END os_tasks */
+
+#ifdef __cplusplus
+}  /* extern "C" */
+#endif 
+
+/*!
+** @}
+*/
+/*
+** ###################################################################
+**
+**     This file was created by Processor Expert 10.5 [05.21]
+**     for the Freescale Kinetis series of microcontrollers.
+**
+** ###################################################################
+*/

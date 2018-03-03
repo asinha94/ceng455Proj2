@@ -1,0 +1,55 @@
+/*
+ * commands.c
+ *
+ *  Created on: Mar 1, 2018
+ *      Author: asinha
+ */
+
+#include "Cpu.h"
+#include "rtos_main_task.h"
+#include "mutex.h"
+
+#include "commands.h"
+
+_queue_id OpenR(uint16_t queue_id) {
+	return add_read_privilege(queue_id, _task_get_id());
+}
+
+int _getline(char *c) {
+	return FALSE;
+}
+
+_queue_id OpenW() {
+	return add_write_privilege(_task_get_id());
+}
+
+int _putline(_queue_id qid, char * string) {
+	return FALSE;
+}
+
+int Close(void) {
+	if (_mutex_lock(&permissions_mutex) != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Access Mutex in Close", _task_get_id());
+	}
+
+	int access_ungranted = TRUE;
+
+	for (int i = 0; i < NUM_USER_TASK; i++) {
+		if (user_permissions[i].task_id != _task_get_id()) {
+			continue;
+		}
+
+		if (!user_permissions[i].has_read_permissions && !user_permissions[i].has_write_permissions) {
+			access_ungranted = FALSE;
+		}
+
+		user_permissions[i].has_read_permissions = FALSE;
+		user_permissions[i].has_write_permissions = FALSE;
+	}
+
+	_mutex_unlock(&permissions_mutex);
+	return access_ungranted;
+}
+
+
+

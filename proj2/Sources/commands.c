@@ -1,0 +1,37 @@
+/*
+ * commands.c
+ *
+ *  Created on: Mar 1, 2018
+ *      Author: asinha
+ */
+
+#include "Cpu.h"
+#include "rtos_main_task.h"
+#include "mutex.h"
+
+#include "commands.h"
+
+_queue_id OpenR(uint16_t queue_id) {
+	return add_read_privilege(queue_id, _task_get_id());
+}
+
+int _getline(char *c) {
+	return FALSE;
+}
+
+_queue_id OpenW() {
+	return add_write_privilege(_task_get_id());
+}
+
+int _putline(_queue_id qid, char * string) {
+	return FALSE;
+}
+
+int Close(void) {
+	bool read_priv_removed = remove_read_privilege(_task_get_id());
+	bool write_priv_removed = remove_write_privilege(_task_get_id());
+	return (read_priv_removed || write_priv_removed);
+}
+
+
+
