@@ -42,6 +42,11 @@ void user_task(os_task_param_t task_init_data)
 	USER_REQUEST_PTR msg_ptr;
 
 	OpenR(0);
+	OpenW();
+	OSA_TimeDelay(3000);
+	Close();
+	return;
+
 
 #ifdef PEX_USE_RTOS
   while (1) {

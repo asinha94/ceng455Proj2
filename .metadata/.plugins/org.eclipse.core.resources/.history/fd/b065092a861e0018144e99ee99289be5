@@ -16,7 +16,7 @@ _queue_id OpenR(uint16_t queue_id) {
 }
 
 int _getline(char *c) {
-	int queueid = get_read_queueid(_task_get_id());
+	int queueid = get_read_queueid();
 	return FALSE;
 }
 

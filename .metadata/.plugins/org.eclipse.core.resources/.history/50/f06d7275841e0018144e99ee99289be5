@@ -60,27 +60,6 @@ static bool check_rw_privilege(USER_PRIVILEGE_PTR current_priv, _task_id tid) {
 	return FALSE;
 }
 
-_queue_id get_read_queueid(_task_id tid) {
-	int mut_error = _mutex_lock(&read_priv_mutex);
-	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't Lock Mutex", _task_get_id());
-		printf("\r\nError: %d", mut_error);
-		return FALSE;
-	}
-
-	USER_PRIVILEGE_PTR rw_head = read_privileges;
-
-	while (rw_head != NULL) {
-		if (rw_head->task_id = tid) {
-			_mutex_unlock(&read_priv_mutex);
-			return rw_head->queue_id;
-		}
-		rw_head = rw_head->next;
-	}
-
-	return 0;
-}
-
 bool add_read_privilege(_queue_id qid , _task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
 	if (mut_error != MQX_EOK) {
@@ -298,23 +277,25 @@ void handler_task(os_task_param_t task_init_data)
   while (1) {
 #endif
 
-	  /*
-	  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
-	  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
-	  msg_ptr->HEADER.TARGET_QID = _msgq_get_id(0, USER_CLIENT_QUEUE_ID);
-	  msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
-	  char tosend[MESSAGE_SIZE];
-	  sprintf(tosend, "%d+%d=%d\0", i, i, i+i);
-	  strcpy(msg_ptr->DATA, tosend);
-	  _msgq_send(msg_ptr);
+		  printf("\r\n[%d] I am in Handler Task", _task_get_id());
+		  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
+		  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
+		  msg_ptr->HEADER.TARGET_QID = _msgq_get_id(0, USER_CLIENT_QUEUE_ID);
+		  msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
+		  char tosend[MESSAGE_SIZE];
+		  sprintf(tosend, "%d+%d=%d\0", i, i, i+i);
+		  strcpy(msg_ptr->DATA, tosend);
+		  _msgq_send(msg_ptr);
 
-	  if (_task_get_error() != MQX_EOK) {
-		  printf("\r\n[%d] failed to Send Message to User",  _task_get_id());
-		  printf("\r\nError 0x%x", _task_get_error());
-		  _task_set_error(MQX_OK);
-		  _task_block();
-		}
-*/
+		  if (_task_get_error() != MQX_EOK) {
+			  printf("\r\n[%d] failed to Send Message to User",  _task_get_id());
+			  printf("\r\nError 0x%x", _task_get_error());
+			  _task_set_error(MQX_OK);
+			  _task_block();
+			}
+
+
+
 	  OSA_TimeDelay(100);
 
 

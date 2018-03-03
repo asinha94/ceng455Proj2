@@ -298,7 +298,6 @@ void handler_task(os_task_param_t task_init_data)
   while (1) {
 #endif
 
-	  /*
 	  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
 	  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
 	  msg_ptr->HEADER.TARGET_QID = _msgq_get_id(0, USER_CLIENT_QUEUE_ID);
@@ -314,7 +313,7 @@ void handler_task(os_task_param_t task_init_data)
 		  _task_set_error(MQX_OK);
 		  _task_block();
 		}
-*/
+
 	  OSA_TimeDelay(100);
 
 
