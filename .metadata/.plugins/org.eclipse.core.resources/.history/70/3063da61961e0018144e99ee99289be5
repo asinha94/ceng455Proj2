@@ -62,7 +62,7 @@ void user_task(os_task_param_t task_init_data)
 			printf("\r\n[%d] Failed to Close() when we should've succeeded...", _task_get_id());
 		}
 
-		OSA_TimeDelay(1000);
+		OSA_TimeDelay(100);
 
 
 #ifdef PEX_USE_RTOS

@@ -144,7 +144,7 @@ _queue_id add_write_privilege(_task_id tid) {
 
 bool remove_read_privilege(_task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
-	if (_task_get_error() != MQX_EOK) {
+	if (mut_error != MQX_EOK) {
 		printf("\r\n[%d] Couldn't lock read read mutex when removing permissions", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
 		_task_set_error(MQX_OK);
@@ -287,7 +287,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
-	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), TX_MESSAGE_POOL_SIZE, 0, 0);
+	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), RX_QUEUE_SIZE, 0, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Open Handler Message Pool", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
@@ -326,7 +326,7 @@ void handler_task(os_task_param_t task_init_data)
       while (rw_head != NULL) {
     	  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
     	  if (msg_ptr == NULL) {
-    		  printf("\r\n[%d] Failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
+    		  printf("\r\n[%d] failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
     		  _task_set_error(MQX_OK);
     		  continue;
     	  }

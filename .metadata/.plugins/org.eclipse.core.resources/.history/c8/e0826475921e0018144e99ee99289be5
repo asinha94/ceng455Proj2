@@ -63,9 +63,8 @@ static bool check_rw_privilege(USER_PRIVILEGE_PTR current_priv, _task_id tid) {
 _queue_id get_read_queueid(_task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
 	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't Lock read Mutex when checking queue id", _task_get_id());
+		printf("\r\n[%d] Couldn't Lock Mutex", _task_get_id());
 		printf("\r\nError: %d", mut_error);
-		_task_set_error(MQX_OK);
 		return FALSE;
 	}
 
@@ -85,9 +84,8 @@ _queue_id get_read_queueid(_task_id tid) {
 bool add_read_privilege(_queue_id qid , _task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
 	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't Lock read mutex when adding read privilege", _task_get_id());
+		printf("\r\n[%d] Couldn't Lock Mutex", _task_get_id());
 		printf("\r\nError: %d", mut_error);
-		_task_set_error(MQX_OK);
 		return FALSE;
 	}
 
@@ -97,7 +95,7 @@ bool add_read_privilege(_queue_id qid , _task_id tid) {
 
 	USER_PRIVILEGE_PTR new_privilege =_mem_alloc(sizeof(USER_PRIVILEGE));
 	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] failed to Allocate memory for adding user read privilege", _task_get_id());
+		printf("\r\n[%d] failed to Allocate memory for adding user privilege", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
 		_task_set_error(MQX_OK);
 		return FALSE;
@@ -114,9 +112,8 @@ bool add_read_privilege(_queue_id qid , _task_id tid) {
 _queue_id add_write_privilege(_task_id tid) {
 	int mut_error = _mutex_lock(&write_priv_mutex);
 	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't lock write mutex when adding adding write privilege", _task_get_id());
+		printf("\r\n[%d] Couldn't Lock Mutex", _task_get_id());
 		printf("\r\nError: %d", mut_error);
-		_task_set_error(MQX_OK);
 		return FALSE;
 	}
 
@@ -127,7 +124,7 @@ _queue_id add_write_privilege(_task_id tid) {
 
 	USER_PRIVILEGE_PTR new_privilege =_mem_alloc(sizeof(USER_PRIVILEGE));
 	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] failed to Allocate memory for adding user write privilege", _task_get_id());
+		printf("\r\n[%d] failed to Allocate memory for adding user privilege", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
 		_task_set_error(MQX_OK);
 		return FALSE;
@@ -144,10 +141,9 @@ _queue_id add_write_privilege(_task_id tid) {
 
 bool remove_read_privilege(_task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
-	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] Couldn't lock read read mutex when removing permissions", _task_get_id());
-		printf("\r\nError 0x%x", _task_get_error());
-		_task_set_error(MQX_OK);
+	if (mut_error != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Lock Mutex", _task_get_id());
+		printf("\r\nError: %d", mut_error);
 		return FALSE;
 	}
 
@@ -165,12 +161,6 @@ bool remove_read_privilege(_task_id tid) {
 	USER_PRIVILEGE_PTR rw_next = rw_head->next;
 	// deallocate memory
 	_mem_free(rw_head);
-	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] Couldn't free memory when removing read permissions", _task_get_id());
-		printf("\r\nError 0x%x", _task_get_error());
-		_task_set_error(MQX_OK);
-		return FALSE;
-	}
 
 	// Check whether removed item was old HEAD
 	USER_PRIVILEGE_PTR rw_new_head = rw_next;
@@ -186,10 +176,9 @@ bool remove_read_privilege(_task_id tid) {
 
 bool remove_write_privilege(_task_id tid) {
 	int mut_error = _mutex_lock(&write_priv_mutex);
-	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] Couldn't lock write mutex when removing permissions", _task_get_id());
-		printf("\r\nError 0x%x", _task_get_error());
-		_task_set_error(MQX_OK);
+	if (mut_error != MQX_EOK) {
+		printf("\r\n[%d] Couldn't Lock Mutex", _task_get_id());
+		printf("\r\nError: %d", mut_error);
 		return FALSE;
 	}
 
@@ -208,12 +197,6 @@ bool remove_write_privilege(_task_id tid) {
 	USER_PRIVILEGE_PTR rw_next = rw_head->next;
 	// deallocate memory
 	_mem_free(rw_head);
-	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] Couldn't free memory when removing write permissions", _task_get_id());
-		printf("\r\nError 0x%x", _task_get_error());
-		_task_set_error(MQX_OK);
-		return FALSE;
-	}
 
 	// Check whether removed item was old HEAD
 	USER_PRIVILEGE_PTR rw_new_head = rw_next;
@@ -230,9 +213,8 @@ bool remove_write_privilege(_task_id tid) {
 void print_rw_privileges(){
 	int mut_error = _mutex_lock(&read_priv_mutex);
 	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't Lock Read Mutex when printing", _task_get_id());
+		printf("\r\n[%d] Couldn't Lock Read Mutex", _task_get_id());
 		printf("\r\nError: %d", mut_error);
-		_task_set_error(MQX_OK);
 		return;
 	}
 
@@ -247,9 +229,8 @@ void print_rw_privileges(){
 
 	mut_error = _mutex_lock(&write_priv_mutex);
 	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't Lock Write Mutex when printing", _task_get_id());
+		printf("\r\n[%d] Couldn't Lock Write Mutex", _task_get_id());
 		printf("\r\nError: %d", mut_error);
-		_task_set_error(MQX_OK);
 		return;
 	}
 
@@ -287,7 +268,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
-	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), TX_MESSAGE_POOL_SIZE, 0, 0);
+	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), RX_QUEUE_SIZE, 0, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Open Handler Message Pool", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
@@ -326,7 +307,7 @@ void handler_task(os_task_param_t task_init_data)
       while (rw_head != NULL) {
     	  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
     	  if (msg_ptr == NULL) {
-    		  printf("\r\n[%d] Failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
+    		  printf("\r\n[%d] failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
     		  _task_set_error(MQX_OK);
     		  continue;
     	  }
@@ -335,16 +316,19 @@ void handler_task(os_task_param_t task_init_data)
     	  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
     	  msg_ptr->HEADER.TARGET_QID = rw_head->queue_id;
     	  strcpy(msg_ptr->DATA, "This is a string\0");
-    	  _msgq_send(msg_ptr);
+    	  int result = _msgq_send(msg_ptr);
 
     	  if (_task_get_error() != MQX_EOK) {
     		  printf("\r\n[%d] failed to Send Message to User: Error 0x%x",  _task_get_id(), _task_get_error());
+    		  printf("\r\nResult: 0x%x", result);
     		  _task_set_error(MQX_OK);
     		  continue;
     		}
 
     	  rw_head = rw_head->next;
       }
+
+      return;
 
 	  _mutex_unlock(&read_priv_mutex);
 	  OSA_TimeDelay(100);

@@ -287,7 +287,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
-	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), TX_MESSAGE_POOL_SIZE, 0, 0);
+	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), RX_QUEUE_SIZE, 0, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Open Handler Message Pool", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());

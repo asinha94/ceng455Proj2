@@ -47,7 +47,6 @@ void user_task(os_task_param_t task_init_data)
 		char received[MESSAGE_SIZE];
 		if (_getline(received)) {
 			printf("\r\n[%d] Recieved from Getline: %s", _task_get_id(), received);
-			received[0] = 0;
 		}
 
 		else {
@@ -62,7 +61,7 @@ void user_task(os_task_param_t task_init_data)
 			printf("\r\n[%d] Failed to Close() when we should've succeeded...", _task_get_id());
 		}
 
-		OSA_TimeDelay(1000);
+		OSA_TimeDelay(100);
 
 
 #ifdef PEX_USE_RTOS
