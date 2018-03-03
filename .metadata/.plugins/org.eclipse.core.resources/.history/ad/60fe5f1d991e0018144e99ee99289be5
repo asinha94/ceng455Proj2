@@ -68,20 +68,6 @@ _queue_id OpenW() {
 }
 
 int _putline(_queue_id qid, char * string) {
-	int queueid = check_write_privilege(_task_get_id());
-
-	if (queueid == 0) { // Dont have permission
-		return FALSE;
-	}
-
-	_queue_id putline_msgq_id = _msgq_open(USER_PUT_QUEUE_ID, 0);
-
-	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] failed to create User Message Queue",  _task_get_id());
-		printf("\r\nError 0x%x", _task_get_error());
-		_task_set_error(MQX_OK);
-		return FALSE;
-	}
 
 	USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
 	if (msg_ptr == NULL) {
@@ -91,24 +77,20 @@ int _putline(_queue_id qid, char * string) {
 	}
 
 	msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
-	msg_ptr->HEADER.SOURCE_QID = putline_msgq_id;
-	msg_ptr->HEADER.TARGET_QID = qid;
-	strcpy(msg_ptr->DATA, string);
+	msg_ptr->HEADER.SOURCE_QID = userq_server_id;
+	msg_ptr->HEADER.TARGET_QID = rw_head->queue_id;
+	strcpy(msg_ptr->DATA, "This is a string\0");
 	_msgq_send(msg_ptr);
 
 	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] failed to Send Message to User: Error 0x%x",  _task_get_id(), _task_get_error());
-		_task_set_error(MQX_OK);
-		return FALSE;
+	printf("\r\n[%d] failed to Send Message to User: Error 0x%x",  _task_get_id(), _task_get_error());
+	_task_set_error(MQX_OK);
+	continue;
 	}
 
-	_msgq_close(putline_msgq_id);
-	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] failed to Close message queue: Error 0x%x",  _task_get_id(), _task_get_error());
-		_task_set_error(MQX_OK);
-		return FALSE;
-	}
-	return TRUE;
+	rw_head = rw_head->next;
+
+	return FALSE;
 }
 
 int Close(void) {

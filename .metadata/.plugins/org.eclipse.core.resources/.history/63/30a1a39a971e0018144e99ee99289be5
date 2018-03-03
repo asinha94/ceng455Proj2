@@ -58,10 +58,9 @@ extern "C" {
 #define MESSAGE_SIZE 64
 
 /* QUEUE IDs */
-#define HANDLER_GET_QUEUE_ID 1
-#define HANDLER_PUT_QUEUE_ID 2
-#define USER_GET_QUEUE_ID 3
-#define USER_PUT_QUEUE_ID 4
+#define USER_SERVER_QUEUE_ID 1
+#define USER_GET_QUEUE_ID 2
+#define USER_PUT_QUEUE_ID 3
 
 /* Message Pool IDs */
 _pool_id user_task_pool_id;
@@ -96,7 +95,6 @@ typedef enum rw_priv {
 
 
 /* Linked List Functions*/
-extern bool check_write_privilege(_task_id);
 extern _queue_id get_queueid(_task_id tid);
 extern bool add_read_privilege(_queue_id, _task_id);
 extern _queue_id add_write_privilege(_task_id);

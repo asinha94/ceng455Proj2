@@ -96,7 +96,6 @@ typedef enum rw_priv {
 
 
 /* Linked List Functions*/
-extern bool check_write_privilege(_task_id);
 extern _queue_id get_queueid(_task_id tid);
 extern bool add_read_privilege(_queue_id, _task_id);
 extern _queue_id add_write_privilege(_task_id);

@@ -93,7 +93,7 @@ int _putline(_queue_id qid, char * string) {
 	msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
 	msg_ptr->HEADER.SOURCE_QID = putline_msgq_id;
 	msg_ptr->HEADER.TARGET_QID = qid;
-	strcpy(msg_ptr->DATA, string);
+	strcpy(msg_ptr->DATA, string");
 	_msgq_send(msg_ptr);
 
 	if (_task_get_error() != MQX_EOK) {
@@ -103,12 +103,7 @@ int _putline(_queue_id qid, char * string) {
 	}
 
 	_msgq_close(putline_msgq_id);
-	if (_task_get_error() != MQX_EOK) {
-		printf("\r\n[%d] failed to Close message queue: Error 0x%x",  _task_get_id(), _task_get_error());
-		_task_set_error(MQX_OK);
-		return FALSE;
-	}
-	return TRUE;
+	return FALSE;
 }
 
 int Close(void) {

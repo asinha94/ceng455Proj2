@@ -60,19 +60,7 @@ static bool check_rw_privilege(USER_PRIVILEGE_PTR current_priv, _task_id tid) {
 	return FALSE;
 }
 
-bool check_write_privilege(_task_id tid) {
-	int mut_error = _mutex_lock(&write_priv_mutex);
-	if (mut_error != MQX_EOK) {
-		printf("\r\n[%d] Couldn't lock write mutex when adding adding write privilege", _task_get_id());
-		printf("\r\nError: %d", mut_error);
-		_task_set_error(MQX_OK);
-		return FALSE;
-	}
-
-	bool priv = check_rw_privilege(&write_priv_mutex, tid);
-	_mutex_unlock(&write_priv_mutex);
-	return priv;
-}
+void check_write_privilege(_task_id);
 
 _queue_id get_read_queueid(_task_id tid) {
 	int mut_error = _mutex_lock(&read_priv_mutex);
