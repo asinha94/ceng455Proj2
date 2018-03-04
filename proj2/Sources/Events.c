@@ -53,41 +53,36 @@ extern "C" {
 ** ===================================================================
 */
 
-int not_opened = 1;
+static bool tx_queue_created = 0;
 void myUART_RxCallback(uint32_t instance, void * uartState)
 {
-    //UART_DRV_SendData(myUART_IDX, myRxBuff, sizeof(myRxBuff));
-    /*
-    _queue_id client_qid;
-
-    if (not_opened) {
-    	client_qid = _msgq_open((_queue_number)RX_QUEUE_HANDLER_ID, 0);
-		if (client_qid == 0) {
-			printf("\nCould not open the client message queue\n");
+	//UART_DRV_SendData(myUART_IDX, myRxBuff, sizeof(myRxBuff));
+	if (tx_queue_created) {
+		_queue_id uart_tx_queue_id = _msgq_open(TX_UART_QUEUE_ID, 0);
+		if (_task_get_error() != MQX_EOK) {
+			printf("\r\n[%d] failed to open uart TX Message Queue", _task_get_id());
+			printf("\r\nError 0x%x", _task_get_error());
+			_task_set_error(MQX_OK);
 			_task_block();
 		}
-		not_opened = 0;
-    }
+	}
 
-    SERVER_MESSAGE_PTR msg_ptr = (SERVER_MESSAGE_PTR) _msg_alloc(RX_MESSAGE_POOL_ID);
+    SERVER_MESSAGE_PTR msg_ptr = (SERVER_MESSAGE_PTR) _msg_alloc(uart_isr_pool_id);
 
     if (msg_ptr == NULL) {
  	   printf("\nCould not allocate a message\n");
  	   _task_block();
     }
 
-    msg_ptr->HEADER.SOURCE_QID = client_qid;
-    msg_ptr->HEADER.TARGET_QID = _msgq_get_id(0, RX_QUEUE_ID);
+    msg_ptr->HEADER.SOURCE_QID = _msgq_get_id(0, TX_UART_QUEUE_ID);
+    msg_ptr->HEADER.TARGET_QID = _msgq_get_id(0, RX_UART_QUEUE_ID);
     msg_ptr->HEADER.SIZE = sizeof(SERVER_MESSAGE);
     msg_ptr->DATA = myRxBuff[0];
 
     _msgq_send(msg_ptr);
     if (_task_get_error() != MQX_OK) {
  	   printf("\nCould not send a message\n");
- 	   return;
     }
-*/
-    return;
 }
 
 /* END Events */

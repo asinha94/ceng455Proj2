@@ -293,3 +293,6 @@ Command-line arguments:  -os win32 -ws win32 -arch x86 -product com.somniumtech.
 
 !ENTRY ilg.gnuarmeclipse.debug.gdbjtag 4 0 2018-03-03 15:15:36.873
 !MESSAGE Debug session 'proj2_Debug_Segger' already started. Terminate the first one before restarting.
+
+!ENTRY ilg.gnuarmeclipse.debug.gdbjtag 4 0 2018-03-03 17:37:06.012
+!MESSAGE Debug session 'proj2_Debug_Segger' already started. Terminate the first one before restarting.

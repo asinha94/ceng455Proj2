@@ -323,7 +323,6 @@ void handler_task(os_task_param_t task_init_data)
 	printf("\r\n[%d] Starting Handler Task", _task_get_id());
 
 	_queue_id userq_server_id = _msgq_open(HANDLER_GET_QUEUE_ID, 0);
-
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to open Getline Message Queue", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
@@ -332,7 +331,6 @@ void handler_task(os_task_param_t task_init_data)
 	}
 
 	putline_queue_id = _msgq_open(HANDLER_PUT_QUEUE_ID, 0);
-
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to open Putline Message Queue", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
@@ -340,9 +338,25 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
-	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), TX_MESSAGE_POOL_SIZE, 0, 0);
+	_queue_id uart_rx_queue_id = _msgq_open(RX_UART_QUEUE_ID, 0);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] failed to open uart RX Message Queue", _task_get_id());
+		printf("\r\nError 0x%x", _task_get_error());
+		_task_set_error(MQX_OK);
+		_task_block();
+	}
+
+	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), USER_MSG_POOL_SIZE, 0, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Open Message Pool for getline/putline", _task_get_id());
+		printf("\r\nError 0x%x", _task_get_error());
+		_task_set_error(MQX_OK);
+		_task_block();
+	}
+
+	uart_isr_pool_id = _msgpool_create(sizeof(SERVER_MESSAGE), UART_RCV_POOL_SIZE, 0, 0);
+	if (_task_get_error() != MQX_EOK) {
+		printf("\r\n[%d] failed to Open Message Pool for UART TX/RX", _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
 		_task_set_error(MQX_OK);
 		_task_block();
@@ -363,12 +377,32 @@ void handler_task(os_task_param_t task_init_data)
 
 	// Delay to allow for the User tasks to init
 	OSA_TimeDelay(2000);
-  
+	char output_message[] = "\n\rType: \0";
+	UART_DRV_SendDataBlocking(myUART_IDX, (uint8_t*)output_message, sizeof(output_message), 1000);
+
+	unsigned int current_position = 0;
+	unsigned char buffer[MESSAGE_SIZE+1];
+	memset(buffer, 0, (MESSAGE_SIZE+1));
+	unsigned int spacePosition;
+	unsigned int last_space = 0;
+
+
 #ifdef PEX_USE_RTOS
   while (1) {
 #endif
 
-	  int user_msg_count = _msgq_get_count(putline_queue_id);
+	  int uart_msg_count = 0;
+	  int user_msg_count = 0;
+	  CONTROL_CHAR ctrl_char = NONE;
+
+	  uart_msg_count = _msgq_get_count(uart_rx_queue_id);
+	  if (uart_msg_count == 0 && _task_get_error() != MQX_OK) {
+		  printf("\r\nFailed to get UART msg\n");
+		  printf("\r\nError code: 0x%x\n", _task_get_error());
+		  _task_set_error(MQX_OK);
+	  }
+
+	  user_msg_count = _msgq_get_count(putline_queue_id);
 	  if (user_msg_count == 0 && _task_get_error() != MQX_OK) {
 		  printf("\r\nFailed to get user message count of putline queue.\n");
 		  printf("\r\nError code: 0x%x\n", _task_get_error());
@@ -376,9 +410,108 @@ void handler_task(os_task_param_t task_init_data)
 		  continue;
 	  }
 
+	  if (uart_msg_count > 0) {
+		  SERVER_MESSAGE_PTR uart_msg_ptr = _msgq_receive(uart_rx_queue_id, 0);
+		  if (_task_get_error() != MQX_EOK) {
+			  printf("\r\n[%d] failed to recieve message from uart isr",  _task_get_id());
+			  printf("\r\nError 0x%x", _task_get_error());
+			  _task_set_error(MQX_OK);
+		  }
+
+		  else {
+			  char c = uart_msg_ptr->DATA;
+			  _msg_free(uart_msg_ptr);
+			  if (_task_get_error() != MQX_EOK) {
+				  printf("\r\n[%d] failed to free UART message",  _task_get_id());
+				  printf("\r\nError 0x%x", _task_get_error());
+				  _task_set_error(MQX_OK);
+			  }
+
+			  if (c == NEWLINE || c == LINEFEED) {
+				  ctrl_char = NEWLINE;
+				  UART_DRV_SendData(myUART_IDX, (uint8_t*)output_message, sizeof(output_message));
+				  current_position = 0;
+			  }
+
+			  else if (c == DELETE_LINE) {
+				  current_position = 0;
+				  char ansi_escape[] =  {0x1B, '[', '2', 'K', '\r'};
+				  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape, sizeof(ansi_escape));
+				  UART_DRV_SendData(myUART_IDX, (uint8_t*)output_message, sizeof(output_message));
+				  ctrl_char = DELETE_LINE;
+				  buffer[current_position] = 0;
+			  }
+
+			  else if (c == BACKSPACE) {
+				  if (current_position > 0) {
+					  current_position--;
+					  char ansi_escape[] =  {'\b',' ', '\b'};
+					  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape, sizeof(ansi_escape));
+					  buffer[current_position] = 0;
+				  }
+			  }
+
+			  else if (c == DELETE_WORD) {
+				  spacePosition = 0;
+				  int hasSpace = 0;
+				  //find last space
+				  for(int i = 0; i < current_position; i++){
+					  if(buffer[i] == ' '){
+						  spacePosition = i;
+						  hasSpace = 1;
+					  }
+				  }
+
+				  if(hasSpace == 1){
+					  //Delete a single char x amount of times
+
+					//  char ansi_escape[] =  {0x1B, '[',(current_position - spacePosition)+48,'D'};
+					  /*
+					  for(int i = 0; i < current_position - spacePosition; i++){
+						  char ansi_escape[] =  {'\b',' ', '\b'};
+						  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape, sizeof(ansi_escape));
+						  buffer[current_position] = 0;
+						  current_position--;
+					  }
+*/
+					  //printf("Spaces moved: %i \n", current_position - spacePosition);
+
+					  //delete everything to the right of the cursor
+					//  char ansi_escape2[] = {0x1B, '[', '0', 'K'};
+					//  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape2, sizeof(ansi_escape2));
+					  current_position = spacePosition;
+					  buffer[current_position] = 0;
+					  buffer[current_position+1] = 0;
+					  char ansi_escape[] =  {0x1B, '[', '2', 'K', '\r'};
+					  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape, sizeof(ansi_escape));
+					  OSA_TimeDelay(10);
+					  UART_DRV_SendData(myUART_IDX, (uint8_t*)buffer, sizeof(buffer));
+				  }
+				  /*
+				  current_position = spacePosition;
+				  buffer[current_position] = 0;
+				  UART_DRV_SendData(myUART_IDX, (uint8_t*)buffer, sizeof(buffer));*/
+			  }
+
+			  else {
+				  buffer[current_position++] = c;
+				  buffer[current_position] = 0;
+				  UART_DRV_SendData(myUART_IDX, myRxBuff, sizeof(myRxBuff));
+			  }
+
+			  printf("\r\nBuffer == \"%s\"", buffer);
+		  }
+	  }
+
+	  if (ctrl_char == NEWLINE) {
+
+	  }
+
+	 // OSA_TimeDelay(100);
+	  continue;
+
 	  if (user_msg_count > 0) {
 		  USER_REQUEST_PTR putline_msg_ptr = _msgq_receive(putline_queue_id, 0);
-
 		  if (_task_get_error() != MQX_EOK) {
 			  printf("\r\n[%d] failed to recieve message from putline queue",  _task_get_id());
 			  printf("\r\nError 0x%x", _task_get_error());
