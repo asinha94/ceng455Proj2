@@ -377,7 +377,7 @@ void handler_task(os_task_param_t task_init_data)
 
 	// Delay to allow for the User tasks to init
 	OSA_TimeDelay(2000);
-	char output_message[] = "\n\rType: \0";
+	char output_message[] = "\n\rSend To User: \0";
 	UART_DRV_SendDataBlocking(myUART_IDX, (uint8_t*)output_message, sizeof(output_message), 1000);
 
 	unsigned int current_position = 0;
@@ -430,14 +430,15 @@ void handler_task(os_task_param_t task_init_data)
 			  if (c == NEWLINE || c == LINEFEED) {
 				  ctrl_char = NEWLINE;
 				  UART_DRV_SendData(myUART_IDX, (uint8_t*)output_message, sizeof(output_message));
-				  current_position = 0;
 			  }
 
 			  else if (c == DELETE_LINE) {
 				  current_position = 0;
-				  char ansi_escape[] =  {0x1B, '[', '2', 'K', '\r'};
+				  char ansi_escape[] =  {0x1B, '[', '2', 'K'};
 				  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape, sizeof(ansi_escape));
+				  OSA_TimeDelay(2);
 				  UART_DRV_SendData(myUART_IDX, (uint8_t*)output_message, sizeof(output_message));
+				  OSA_TimeDelay(2);
 				  ctrl_char = DELETE_LINE;
 				  buffer[current_position] = 0;
 			  }
@@ -453,44 +454,24 @@ void handler_task(os_task_param_t task_init_data)
 
 			  else if (c == DELETE_WORD) {
 				  spacePosition = 0;
-				  int hasSpace = 0;
+
 				  //find last space
 				  for(int i = 0; i < current_position; i++){
-					  if(buffer[i] == ' '){
-						  spacePosition = i;
-						  hasSpace = 1;
-					  }
+					  if(buffer[i] == ' ' && buffer[i+1] != ' ') spacePosition = i;
 				  }
-
-				  if(hasSpace == 1){
 					  //Delete a single char x amount of times
 
-					//  char ansi_escape[] =  {0x1B, '[',(current_position - spacePosition)+48,'D'};
-					  /*
-					  for(int i = 0; i < current_position - spacePosition; i++){
+					  char ansi_escape_buffer[MESSAGE_SIZE+1];
+					  int i;
+					  //{0x1B, '[',(current_position - spacePosition)+48,'D'};
+					  for(i = 0; i < current_position - spacePosition; i++){
 						  char ansi_escape[] =  {'\b',' ', '\b'};
+						  buffer[(current_position - i)-1] = 0;
 						  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape, sizeof(ansi_escape));
-						  buffer[current_position] = 0;
-						  current_position--;
+						  OSA_TimeDelay(1);
 					  }
-*/
-					  //printf("Spaces moved: %i \n", current_position - spacePosition);
-
-					  //delete everything to the right of the cursor
-					//  char ansi_escape2[] = {0x1B, '[', '0', 'K'};
-					//  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape2, sizeof(ansi_escape2));
 					  current_position = spacePosition;
-					  buffer[current_position] = 0;
-					  buffer[current_position+1] = 0;
-					  char ansi_escape[] =  {0x1B, '[', '2', 'K', '\r'};
-					  UART_DRV_SendData(myUART_IDX, (uint8_t*)ansi_escape, sizeof(ansi_escape));
-					  OSA_TimeDelay(10);
-					  UART_DRV_SendData(myUART_IDX, (uint8_t*)buffer, sizeof(buffer));
-				  }
-				  /*
-				  current_position = spacePosition;
-				  buffer[current_position] = 0;
-				  UART_DRV_SendData(myUART_IDX, (uint8_t*)buffer, sizeof(buffer));*/
+
 			  }
 
 			  else {
@@ -499,16 +480,55 @@ void handler_task(os_task_param_t task_init_data)
 				  UART_DRV_SendData(myUART_IDX, myRxBuff, sizeof(myRxBuff));
 			  }
 
-			  printf("\r\nBuffer == \"%s\"", buffer);
+			  //printf("\r\nBuffer == \"%s\"", buffer);
 		  }
 	  }
 
 	  if (ctrl_char == NEWLINE) {
+		  printf("\r\n[%d] Handler recieved data from Terminal: %s", _task_get_id(), buffer);
 
+		  if (_task_get_error() != MQX_EOK) {
+			  printf("\r\n[%d] failed to free message",  _task_get_id());
+			  printf("\r\nError 0x%x", _task_get_error());
+			  _task_set_error(MQX_OK);
+			  continue;
+		  }
+
+		  int mut_error = _mutex_lock(&read_priv_mutex);
+		  if (mut_error != MQX_EOK) {
+			  printf("\r\n[%d] Couldn't Lock Read Mutex", _task_get_id());
+			  printf("\r\nError: %d", mut_error);
+			  continue;
+		  }
+
+		  USER_PRIVILEGE_PTR rw_head = read_privileges;
+		  while (rw_head != NULL) {
+			  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
+			  if (msg_ptr == NULL) {
+				  printf("\r\n[%d] Failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
+				  _task_set_error(MQX_OK);
+				  continue;
+			  }
+
+			  msg_ptr->HEADER.SIZE = sizeof(USER_REQUEST);
+			  msg_ptr->HEADER.SOURCE_QID = userq_server_id;
+			  msg_ptr->HEADER.TARGET_QID = rw_head->queue_id;
+			  strcpy(msg_ptr->DATA, buffer);
+			  _msgq_send(msg_ptr);
+
+			  if (_task_get_error() != MQX_EOK) {
+				  printf("\r\n[%d] failed to Send Message to User: Error 0x%x",  _task_get_id(), _task_get_error());
+				  _task_set_error(MQX_OK);
+				  continue;
+				}
+
+			  rw_head = rw_head->next;
+		  }
+
+		  _mutex_unlock(&read_priv_mutex);
+		  current_position = 0;
 	  }
 
-	 // OSA_TimeDelay(100);
-	  continue;
 
 	  if (user_msg_count > 0) {
 		  USER_REQUEST_PTR putline_msg_ptr = _msgq_receive(putline_queue_id, 0);
@@ -567,8 +587,7 @@ void handler_task(os_task_param_t task_init_data)
 		  _mutex_unlock(&read_priv_mutex);
 	  }
 
-	  OSA_TimeDelay(100);
-
+	  OSA_TimeDelay(1);
 
 #ifdef PEX_USE_RTOS   
   }
@@ -585,4 +604,15 @@ void handler_task(os_task_param_t task_init_data)
 **     for the Freescale Kinetis series of microcontrollers.
 **
 ** ###################################################################
+/*
+** ===================================================================
+**     Callback    : user_task
+**     Description : Task function entry.
+**     Parameters  :
+**       task_init_data - OS task parameter
+**     Returns : Nothing
+** ===================================================================
 */
+
+
+

@@ -39,6 +39,7 @@ void user_task(os_task_param_t task_init_data)
 #ifdef PEX_USE_RTOS
   while (1) {
 #endif
+
 	  	// Call Close before any privileges are given
 	    if (!Close()) {
 	    	printf("\r\n[%d] SUCCESS. Close() returned False", _task_get_id());
@@ -77,19 +78,6 @@ void user_task(os_task_param_t task_init_data)
 		else {
 			printf("\r\n[%d] SUCESS: OpenR failed correctly", _task_get_id());
 		}
-
-
-		/*
-		// Call GetLine which should succeed
-		if (_getline(received)) {
-			printf("\r\n[%d] SUCCESS: Recieved from Getline: %s", _task_get_id(), received);
-			received[0] = 0;
-		}
-
-		else {
-			printf("\r\n[%d] FAILED: Getline should have succeeded...", _task_get_id());
-		}
-		*/
 
 		// Call putline before OpenW
 		char to_send[] = "Test Putline\0";
@@ -147,6 +135,18 @@ void user_task(os_task_param_t task_init_data)
 		else {
 			printf("\r\n[%d] FAILED: to Close() when we should've succeeded...", _task_get_id());
 		}
+
+		OpenR(getline_msgq_id);
+
+		printf("\r\n\r\n[%d]Waiting For Input from User...", _task_get_id());
+
+		// Call GetLine which should succeed
+		if (_getline(received)) {
+			printf("\r\n[%d] Recieved from Getline: \"%s\"", _task_get_id(), received);
+			received[0] = 0;
+		}
+
+		Close();
 
 		OSA_TimeDelay(1000);
 

@@ -296,3 +296,51 @@ Command-line arguments:  -os win32 -ws win32 -arch x86 -product com.somniumtech.
 
 !ENTRY ilg.gnuarmeclipse.debug.gdbjtag 4 0 2018-03-03 17:37:06.012
 !MESSAGE Debug session 'proj2_Debug_Segger' already started. Terminate the first one before restarting.
+!SESSION 2018-03-04 15:44:11.491 -----------------------------------------------
+eclipse.buildId=3.2.0.201603041649
+java.version=1.7.0_76
+java.vendor=Oracle Corporation
+BootLoader constants: OS=win32, ARCH=x86, WS=win32, NL=en_US
+Framework arguments:  -product com.somniumtech.branding.kds.ide -showlocation
+Command-line arguments:  -os win32 -ws win32 -arch x86 -product com.somniumtech.branding.kds.ide -showlocation
+
+!ENTRY com.processorexpert.core.ide.wizard.ui 2 0 2018-03-04 15:44:28.220
+!MESSAGE External elements location C:\Freescale\KDS_v3\eclipse\ProcessorExpert\BoardConfigurations/wizard_data does not exist
+
+!ENTRY org.eclipse.cdt.dsf 4 10005 2018-03-04 15:50:30.691
+!MESSAGE Request for monitor: 'RequestMonitor (org.eclipse.cdt.dsf.concurrent.RequestMonitorWithProgress@297f3e): Status ERROR: ilg.gnuarmeclipse.debug.gdbjtag code=5010 Starting J-Link GDB Server timed out. null' resulted in an error.
+!SUBENTRY 1 ilg.gnuarmeclipse.debug.gdbjtag 4 5010 2018-03-04 15:50:30.691
+!MESSAGE Starting J-Link GDB Server timed out.
+
+!ENTRY org.eclipse.cdt.dsf.gdb 4 5012 2018-03-04 15:50:30.708
+!MESSAGE Error in services launch sequence
+!STACK 1
+org.eclipse.core.runtime.CoreException: Starting J-Link GDB Server timed out.
+	at org.eclipse.cdt.dsf.concurrent.Sequence.abortExecution(Sequence.java:582)
+	at org.eclipse.cdt.dsf.concurrent.Sequence.access$4(Sequence.java:574)
+	at org.eclipse.cdt.dsf.concurrent.Sequence$2.handleErrorOrWarning(Sequence.java:431)
+	at org.eclipse.cdt.dsf.concurrent.RequestMonitor.handleFailure(RequestMonitor.java:425)
+	at org.eclipse.cdt.dsf.concurrent.RequestMonitor.handleCompleted(RequestMonitor.java:388)
+	at org.eclipse.cdt.dsf.concurrent.RequestMonitor$2.run(RequestMonitor.java:313)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Unknown Source)
+	at java.util.concurrent.FutureTask.run(Unknown Source)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$201(Unknown Source)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.lang.Thread.run(Unknown Source)
+!SUBENTRY 1 ilg.gnuarmeclipse.debug.gdbjtag 4 5010 2018-03-04 15:50:30.710
+!MESSAGE Starting J-Link GDB Server timed out.
+
+!ENTRY org.eclipse.core.jobs 4 2 2018-03-04 15:50:33.700
+!MESSAGE An internal error occurred during: "Starting J-Link GDB Server".
+!STACK 0
+java.lang.IllegalStateException: RequestMonitor: Sequence "", result for executing step #1 = Status ERROR: org.eclipse.cdt.dsf code=10005 Request for monitor: 'RequestMonitor (ilg.gnuarmeclipse.debug.gdbjtag.dsf.GnuArmGdbServerBackend$GdbServerStep$1@15cd1e3): Status OK: unknown code=0 OK null' resulted in a rejected execution exception. null, done() method called more than once
+	at org.eclipse.cdt.dsf.concurrent.RequestMonitor.done(RequestMonitor.java:286)
+	at org.eclipse.cdt.dsf.concurrent.RequestMonitor.handleRejectedExecutionException(RequestMonitor.java:518)
+	at org.eclipse.cdt.dsf.concurrent.RequestMonitor.done(RequestMonitor.java:321)
+	at ilg.gnuarmeclipse.debug.gdbjtag.dsf.GnuArmGdbServerBackend$GdbServerStep$2.run(GnuArmGdbServerBackend.java:812)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:54)
+
+!ENTRY ilg.gnuarmeclipse.debug.gdbjtag 4 0 2018-03-04 17:01:19.721
+!MESSAGE Debug session 'proj2_Debug_Segger' already started. Terminate the first one before restarting.

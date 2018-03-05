@@ -1,0 +1,146 @@
+/* ###################################################################
+**     Filename    : os_tasks.h
+**     Project     : proj2
+**     Processor   : MK64FN1M0VLL12
+**     Component   : Events
+**     Version     : Driver 01.00
+**     Compiler    : GNU C Compiler
+**     Date/Time   : 2018-03-01, 15:46, # CodeGen: 1
+**     Abstract    :
+**         This is user's event module.
+**         Put your event handler code here.
+**     Settings    :
+**     Contents    :
+**         user_task    - void user_task(os_task_param_t task_init_data);
+**         handler_task - void handler_task(os_task_param_t task_init_data);
+**
+** ###################################################################*/
+/*!
+** @file os_tasks.h
+** @version 01.00
+** @brief
+**         This is user's event module.
+**         Put your event handler code here.
+*/         
+/*!
+**  @addtogroup os_tasks_module os_tasks module documentation
+**  @{
+*/         
+
+#ifndef __os_tasks_H
+#define __os_tasks_H
+/* MODULE os_tasks */
+
+#include "fsl_device_registers.h"
+#include "clockMan1.h"
+#include "pin_init.h"
+#include "osa1.h"
+#include "mqx_ksdk.h"
+#include "uart1.h"
+#include "fsl_mpu1.h"
+#include "fsl_hwtimer1.h"
+#include "MainTask.h"
+#include "HandlerTask.h"
+#include "myUART.h"
+#include "UserTask.h"
+
+#include <message.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
+/* Size */
+#define RX_QUEUE_SIZE 1
+#define USER_MSG_POOL_SIZE 32
+#define UART_RCV_POOL_SIZE 64
+#define MESSAGE_SIZE 64
+
+/* QUEUE IDs */
+#define HANDLER_GET_QUEUE_ID 1
+#define HANDLER_PUT_QUEUE_ID 2
+#define USER_GET_QUEUE_ID 3
+#define USER_PUT_QUEUE_ID 4
+
+/* UART Queue IDs*/
+#define RX_UART_QUEUE_ID 5
+#define TX_UART_QUEUE_ID 6
+
+/* Message Pool IDs */
+_pool_id uart_isr_pool_id;
+_pool_id user_task_pool_id;
+
+typedef struct server_message
+{
+   MESSAGE_HEADER_STRUCT   HEADER;
+   unsigned char 		   DATA;
+} SERVER_MESSAGE, * SERVER_MESSAGE_PTR;
+
+
+typedef struct user_request {
+	MESSAGE_HEADER_STRUCT   HEADER;
+	unsigned char			DATA[MESSAGE_SIZE];
+} USER_REQUEST, * USER_REQUEST_PTR;
+
+typedef struct user_privilege {
+	_queue_id 				queue_id;
+	_task_id 				task_id;
+	struct user_privilege 	* next;
+} USER_PRIVILEGE, * USER_PRIVILEGE_PTR;
+
+
+typedef enum ctrl_char {
+	NONE = 0,
+	SPACE = 0x20,
+	BACKSPACE = 0x08,
+	DELETE_WORD = 0x17,
+	DELETE_LINE = 0x15,
+	NEWLINE = (int) '\n',
+	LINEFEED = (int) '\r'
+} CONTROL_CHAR;
+
+
+/* Linked List Functions*/
+extern bool check_write_privilege(_task_id);
+extern _queue_id get_queueid(_task_id tid);
+extern bool add_read_privilege(_queue_id, _task_id);
+extern _queue_id add_write_privilege(_task_id);
+extern bool remove_read_privilege(_task_id);
+extern bool remove_write_privilege(_task_id);
+
+
+/*
+** ===================================================================
+**     Callback    : handler_task
+**     Description : Task function entry.
+**     Parameters  :
+**       task_init_data - OS task parameter
+**     Returns : Nothing
+** ===================================================================
+*/
+void handler_task(os_task_param_t task_init_data);
+
+#endif
+/* ifndef __os_tasks_H*/
+/*!
+** @}
+*/
+/*
+** ###################################################################
+**
+**     This file was created by Processor Expert 10.5 [05.21]
+**     for the Freescale Kinetis series of microcontrollers.
+**
+** ###################################################################
+/*
+** ===================================================================
+**     Callback    : user_task
+**     Description : Task function entry.
+**     Parameters  :
+**       task_init_data - OS task parameter
+**     Returns : Nothing
+** ===================================================================
+*/
+void user_task(os_task_param_t task_init_data);
+
+*/

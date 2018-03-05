@@ -54,7 +54,7 @@ extern "C" {
 #define RX_QUEUE_SIZE 1
 #define USER_MSG_POOL_SIZE 32
 #define UART_RCV_POOL_SIZE 64
-#define MESSAGE_SIZE 64
+#define MESSAGE_SIZE 128
 
 /* QUEUE IDs */
 #define HANDLER_GET_QUEUE_ID 1
@@ -132,4 +132,14 @@ void handler_task(os_task_param_t task_init_data);
 **     for the Freescale Kinetis series of microcontrollers.
 **
 ** ###################################################################
+/*
+** ===================================================================
+**     Callback    : user_task
+**     Description : Task function entry.
+**     Parameters  :
+**       task_init_data - OS task parameter
+**     Returns : Nothing
+** ===================================================================
 */
+
+
