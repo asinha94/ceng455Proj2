@@ -52,6 +52,7 @@ static USER_PRIVILEGE_PTR write_privileges = NULL;
 static _queue_id putline_queue_id;
 
 static bool check_rw_privilege(USER_PRIVILEGE_PTR current_priv, _task_id tid) {
+	//iterate through the list and checks if any item's task matches the task_id provided
 	while (current_priv != NULL) {
 		if (current_priv->task_id == tid) return TRUE;
 		current_priv = current_priv->next;
@@ -61,6 +62,7 @@ static bool check_rw_privilege(USER_PRIVILEGE_PTR current_priv, _task_id tid) {
 }
 
 bool check_write_privilege(_task_id tid) {
+	// lock the mutex for the write_privilege_list
 	int mut_error = _mutex_lock(&write_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] Couldn't lock write mutex when checking write privilege", _task_get_id());
@@ -70,6 +72,7 @@ bool check_write_privilege(_task_id tid) {
 		return FALSE;
 	}
 
+	// use the above function to check whether we have write access
 	bool priv = check_rw_privilege(write_privileges, tid);
 	_mutex_unlock(&write_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
@@ -80,6 +83,7 @@ bool check_write_privilege(_task_id tid) {
 }
 
 _queue_id get_read_queueid(_task_id tid) {
+	// locks the read mutex
 	int mut_error = _mutex_lock(&read_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] Couldn't Lock read Mutex when checking queue id", _task_get_id());
@@ -90,8 +94,10 @@ _queue_id get_read_queueid(_task_id tid) {
 
 	USER_PRIVILEGE_PTR rw_head = read_privileges;
 
+	// iterate through the list 
 	while (rw_head != NULL) {
-		if (rw_head->task_id = tid) {
+		// if the user task is found then unlock mutex and return with queueid
+		if (rw_head->task_id == tid) {
 			_mutex_unlock(&read_priv_mutex);
 			if (_task_get_error() != MQX_EOK) {
 				printf("\r\n[%d] Couldn't unlock read Mutex when getting queueid. Error: 0x%x", _task_get_id(), _task_get_error());
@@ -102,6 +108,7 @@ _queue_id get_read_queueid(_task_id tid) {
 		rw_head = rw_head->next;
 	}
 
+	// if not found, then unlock mutex and return 0
 	_mutex_unlock(&read_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] Couldn't unlock read Mutex when getting queueid. Error: 0x%x", _task_get_id(), _task_get_error());
@@ -111,6 +118,7 @@ _queue_id get_read_queueid(_task_id tid) {
 }
 
 bool add_read_privilege(_queue_id qid , _task_id tid) {
+	// lock mutex for read list
 	int mut_error = _mutex_lock(&read_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] Couldn't Lock read mutex when adding read privilege", _task_get_id());
@@ -121,8 +129,10 @@ bool add_read_privilege(_queue_id qid , _task_id tid) {
 
 	USER_PRIVILEGE_PTR rw_head = read_privileges;
 
+	// check if read prvilege already given
 	if (check_rw_privilege(rw_head, tid)) return FALSE;
 
+	// if not already given, add usertask to list as first element in list
 	USER_PRIVILEGE_PTR new_privilege =_mem_alloc(sizeof(USER_PRIVILEGE));
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Allocate memory for adding user read privilege", _task_get_id());
@@ -144,6 +154,7 @@ bool add_read_privilege(_queue_id qid , _task_id tid) {
 }
 
 _queue_id add_write_privilege(_task_id tid) {
+	// lock mutex for write list
 	int mut_error = _mutex_lock(&write_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] Couldn't lock write mutex when adding adding write privilege. Error: 0x%x", _task_get_id(), _task_get_error());
@@ -154,9 +165,10 @@ _queue_id add_write_privilege(_task_id tid) {
 
 	USER_PRIVILEGE_PTR rw_head = write_privileges;
 
-	// Check if it alread exists
+	// Check if user already exists in the list
 	if (check_rw_privilege(rw_head, tid)) return FALSE;
 
+	// if it doesn't exist, dynamically allocate data
 	USER_PRIVILEGE_PTR new_privilege =_mem_alloc(sizeof(USER_PRIVILEGE));
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Allocate memory for adding user write privilege", _task_get_id());
@@ -169,6 +181,7 @@ _queue_id add_write_privilege(_task_id tid) {
 	new_privilege->task_id = tid;
 	new_privilege->next = rw_head;
 
+	// set new task as new head to avoid iterating through the list again
 	write_privileges = new_privilege;
 	_mutex_unlock(&write_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
@@ -189,9 +202,10 @@ bool remove_read_privilege(_task_id tid) {
 
 	USER_PRIVILEGE_PTR rw_head = read_privileges;
 
-	// Check if user has privilege to remove
+	// Check if user has privilege in the first place
 	if (!check_rw_privilege(rw_head, tid)) return FALSE;
 
+	// user has to be in the list so iterate though the list till we get to node
 	USER_PRIVILEGE_PTR rw_prev = NULL;
 	while (rw_head->task_id != tid) {
 		rw_prev = rw_head;
@@ -236,9 +250,10 @@ bool remove_write_privilege(_task_id tid) {
 
 	USER_PRIVILEGE_PTR rw_head = write_privileges;
 
-	// Check if it alread exists
+	// Check if it exists in the list at all
 	if (!check_rw_privilege(rw_head, tid)) return FALSE;
 
+	// user has to be in the list, iterate till we find it
 	USER_PRIVILEGE_PTR rw_prev = NULL;
 	while (rw_head->task_id != tid) {
 		rw_prev = rw_head;
@@ -262,6 +277,7 @@ bool remove_write_privilege(_task_id tid) {
 		rw_new_head->next = rw_next;
 	}
 
+	// re-set HEAD to avoid the case of removing the HEAD of the list
 	write_privileges = rw_new_head;
 	_mutex_unlock(&write_priv_mutex);
 	if (_task_get_error() != MQX_EOK) {
@@ -272,6 +288,7 @@ bool remove_write_privilege(_task_id tid) {
 }
 
 void print_rw_privileges(){
+	// Function used for testing linked lists
 	int mut_error = _mutex_lock(&read_priv_mutex);
 	if (mut_error != MQX_EOK) {
 		printf("\r\n[%d] Couldn't Lock Read Mutex when printing", _task_get_id());
@@ -322,6 +339,7 @@ void handler_task(os_task_param_t task_init_data)
 {
 	printf("\r\n[%d] Starting Handler Task", _task_get_id());
 
+	// Open Queue used for transmitting __getline data to user task
 	_queue_id userq_server_id = _msgq_open(HANDLER_GET_QUEUE_ID, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to open Getline Message Queue", _task_get_id());
@@ -330,6 +348,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
+	// open queue used for recieving __putline data from user task
 	putline_queue_id = _msgq_open(HANDLER_PUT_QUEUE_ID, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to open Putline Message Queue", _task_get_id());
@@ -338,6 +357,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
+	// open queue used for UART ISR 
 	_queue_id uart_rx_queue_id = _msgq_open(RX_UART_QUEUE_ID, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to open uart RX Message Queue", _task_get_id());
@@ -346,6 +366,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
+	// create msg pool for __getline and __putline msgs
 	user_task_pool_id = _msgpool_create(sizeof(USER_REQUEST), USER_MSG_POOL_SIZE, 0, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Open Message Pool for getline/putline", _task_get_id());
@@ -354,6 +375,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
+	// create msg pool for UART msgs from ISR
 	uart_isr_pool_id = _msgpool_create(sizeof(SERVER_MESSAGE), UART_RCV_POOL_SIZE, 0, 0);
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to Open Message Pool for UART TX/RX", _task_get_id());
@@ -362,6 +384,7 @@ void handler_task(os_task_param_t task_init_data)
 		_task_block();
 	}
 
+	// Initialize Mutexes to default values
 	MUTEX_ATTR_STRUCT mutextattr;
 	if (_mutatr_init(&mutextattr) != MQX_EOK) {
 		printf("\r\n[%d] Couldn't Init Mutex attr in Serial task", _task_get_id());
@@ -381,6 +404,7 @@ void handler_task(os_task_param_t task_init_data)
 	UART_DRV_SendDataBlocking(myUART_IDX, (uint8_t*)output_message, sizeof(output_message), 1000);
 
 	unsigned int current_position = 0;
+	//create buffer to store single line
 	unsigned char buffer[MESSAGE_SIZE+1];
 	memset(buffer, 0, (MESSAGE_SIZE+1));
 	unsigned int spacePosition;
@@ -395,6 +419,7 @@ void handler_task(os_task_param_t task_init_data)
 	  int user_msg_count = 0;
 	  CONTROL_CHAR ctrl_char = NONE;
 
+	  // check if recieved anything from ISR
 	  uart_msg_count = _msgq_get_count(uart_rx_queue_id);
 	  if (uart_msg_count == 0 && _task_get_error() != MQX_OK) {
 		  printf("\r\nFailed to get UART msg\n");
@@ -402,6 +427,7 @@ void handler_task(os_task_param_t task_init_data)
 		  _task_set_error(MQX_OK);
 	  }
 
+	// Check if recieved __putline msg from user task
 	  user_msg_count = _msgq_get_count(putline_queue_id);
 	  if (user_msg_count == 0 && _task_get_error() != MQX_OK) {
 		  printf("\r\nFailed to get user message count of putline queue.\n");
@@ -410,6 +436,7 @@ void handler_task(os_task_param_t task_init_data)
 		  continue;
 	  }
 
+	// if new char from terminal, do processing
 	  if (uart_msg_count > 0) {
 		  SERVER_MESSAGE_PTR uart_msg_ptr = _msgq_receive(uart_rx_queue_id, 0);
 		  if (_task_get_error() != MQX_EOK) {
@@ -427,11 +454,13 @@ void handler_task(os_task_param_t task_init_data)
 				  _task_set_error(MQX_OK);
 			  }
 
+			 // if newline, print new terminal prompt and set ctrl_char which get processed later
 			  if (c == NEWLINE || c == LINEFEED) {
 				  ctrl_char = NEWLINE;
 				  UART_DRV_SendData(myUART_IDX, (uint8_t*)output_message, sizeof(output_message));
 			  }
 
+			// if delete line, remove line from terminal with ANSI codes, and clear buffer
 			  else if (c == DELETE_LINE) {
 				  current_position = 0;
 				  char ansi_escape[] =  {0x1B, '[', '2', 'K'};
@@ -443,6 +472,7 @@ void handler_task(os_task_param_t task_init_data)
 				  buffer[current_position] = 0;
 			  }
 
+			// if backspace, remove last char from buffer and use ANSI to remove char in terminal
 			  else if (c == BACKSPACE) {
 				  if (current_position > 0) {
 					  current_position--;
@@ -452,6 +482,7 @@ void handler_task(os_task_param_t task_init_data)
 				  }
 			  }
 
+			// if delete word, move to last space before word, then delete all to right of cursor
 			  else if (c == DELETE_WORD) {
 				  spacePosition = 0;
 
@@ -474,6 +505,7 @@ void handler_task(os_task_param_t task_init_data)
 
 			  }
 
+			// if just a normal char add it to the buffer and update in terminal
 			  else {
 				  buffer[current_position++] = c;
 				  buffer[current_position] = 0;
@@ -501,6 +533,7 @@ void handler_task(os_task_param_t task_init_data)
 			  continue;
 		  }
 
+		// iterate through read priv list and send to everyone inthe list
 		  USER_PRIVILEGE_PTR rw_head = read_privileges;
 		  while (rw_head != NULL) {
 			  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
@@ -529,7 +562,7 @@ void handler_task(os_task_param_t task_init_data)
 		  current_position = 0;
 	  }
 
-
+	// now check for any putline messages
 	  if (user_msg_count > 0) {
 		  USER_REQUEST_PTR putline_msg_ptr = _msgq_receive(putline_queue_id, 0);
 		  if (_task_get_error() != MQX_EOK) {
@@ -560,6 +593,7 @@ void handler_task(os_task_param_t task_init_data)
 			  continue;
 		  }
 
+		// if we have putline messages then we iterate the list and send to everyone
 		  USER_PRIVILEGE_PTR rw_head = read_privileges;
 		  while (rw_head != NULL) {
 			  USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);

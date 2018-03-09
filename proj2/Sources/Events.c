@@ -57,6 +57,8 @@ static bool tx_queue_created = 0;
 void myUART_RxCallback(uint32_t instance, void * uartState)
 {
 	//UART_DRV_SendData(myUART_IDX, myRxBuff, sizeof(myRxBuff));
+
+	// Open the msg queue if not already opened
 	if (tx_queue_created) {
 		_queue_id uart_tx_queue_id = _msgq_open(TX_UART_QUEUE_ID, 0);
 		if (_task_get_error() != MQX_EOK) {
@@ -67,6 +69,7 @@ void myUART_RxCallback(uint32_t instance, void * uartState)
 		}
 	}
 
+	// create the msg which contains only a single char recieved from the UART connections
     SERVER_MESSAGE_PTR msg_ptr = (SERVER_MESSAGE_PTR) _msg_alloc(uart_isr_pool_id);
 
     if (msg_ptr == NULL) {

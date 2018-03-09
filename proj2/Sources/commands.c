@@ -26,15 +26,18 @@ int _getline(char * received) {
 	int user_msg_count = 0;
 
 	while (1) {
+		// checl if we've recieved anything
 		  user_msg_count = _msgq_get_count(queueid);
 		  if (user_msg_count == 0 && _task_get_error() != MQX_OK) {
 			  printf("\r\nFailed to get user message count.\n");
 			  printf("\r\nError code: 0x%x\n", _task_get_error());
 			  _task_set_error(MQX_OK);
+			  // if error when checking, keep iterting and hope we dont get it again
 			  continue;
 		  }
 
 		  if (user_msg_count > 0) {
+			  //if recieved msg then do some error handling
 			  USER_REQUEST_PTR msg_ptr = _msgq_receive(queueid, 0);
 
 		      if (_task_get_error() != MQX_EOK) {
@@ -44,6 +47,7 @@ int _getline(char * received) {
 				  return FALSE;
 			  }
 
+			  // copy the buffer into the provided user buffer and free original message
 			  strcpy(received, msg_ptr->DATA);
 			  _msg_free(msg_ptr);
 
@@ -64,6 +68,9 @@ int _getline(char * received) {
 }
 
 _queue_id OpenW() {
+	// the add_write_privilee function just adds the task to the linked list
+	// if no record with the same id exists then we return the getline queueid
+	// if it does exist we return 0
 	return add_write_privilege(_task_get_id());
 }
 
@@ -76,6 +83,7 @@ int _putline(_queue_id qid, char * string) {
 		return FALSE;
 	}
 
+	// open the putline queue if it doesn't already exist
 	_queue_id putline_msgq_id;
 	if (!queue_exists) {
 		putline_msgq_id = _msgq_open(USER_PUT_QUEUE_ID, 0);
@@ -89,6 +97,7 @@ int _putline(_queue_id qid, char * string) {
 		return FALSE;
 	}
 
+	// create the msg to send along the queue
 	USER_REQUEST_PTR msg_ptr = (USER_REQUEST_PTR) _msg_alloc(user_task_pool_id);
 	if (msg_ptr == NULL) {
 		printf("\r\n[%d] Failed to Allocate Message: Error 0x%x",  _task_get_id(), _task_get_error());
@@ -122,6 +131,9 @@ int _putline(_queue_id qid, char * string) {
 int Close(void) {
 	bool read_priv_removed = remove_read_privilege(_task_get_id());
 	bool write_priv_removed = remove_write_privilege(_task_get_id());
+	// the 2 above functions will return false if no privilege was found
+	// so we return false if only both of them are false
+	// if one or the other returns true then we return true
 	return (read_priv_removed || write_priv_removed);
 }
 

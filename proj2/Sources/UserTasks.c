@@ -27,8 +27,8 @@ extern "C" {
 void user_task(os_task_param_t task_init_data)
 {
 	printf("\r\n[%d] Starting User Task", _task_get_id());
+	// create queue for recieving __getline msg
 	_queue_id getline_msgq_id = _msgq_open(USER_GET_QUEUE_ID, 0);
-
 	if (_task_get_error() != MQX_EOK) {
 		printf("\r\n[%d] failed to create User Message Queue",  _task_get_id());
 		printf("\r\nError 0x%x", _task_get_error());
